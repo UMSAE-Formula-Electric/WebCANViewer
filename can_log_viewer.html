@@ -1004,6 +1004,12 @@ const KNOWN_PAGES = [
     ["Reference voltages  (V)", ["INV_Reference_Voltage_1_5","INV_Reference_Voltage_2_5","INV_Reference_Voltage_5_0","INV_Reference_Voltage_12_0"]],
     ["Parameter read/write channel", ["VCU_INV_Parameter_Address_Command","VCU_INV_Read_Write_Command","VCU_INV_Data_Command","INV_Parameter_Address_Response","INV_Write_Success","INV_Data_Response"]],
   ]},
+  { title: "Battery & BMS", blurb: "Battery voltage, current, and state-of-charge, plus the BMS's own feedback.", groups: [
+    ["Pack voltage  (V)", ["BMS_Pack_Voltage"]],
+    ["Pack current  (A)", ["BMS_Pack_Current"]],
+    ["State of charge  (%)", ["BMS_State_of_Charge"]],
+    ["BMS feedback", ["INV_BMS_Active","INV_BMS_Torque_Limiting","INV_BMS_Faults"]],
+  ]}
 ];
 
 const CONSTANT_SIGNALS = new Set([
