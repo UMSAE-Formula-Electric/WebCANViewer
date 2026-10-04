@@ -59,6 +59,28 @@
   .scroller { max-height:340px; overflow:auto; border:1px solid #1e252e; border-radius:3px; }
   input[type=checkbox] { accent-color:#4dd0e1; }
   .hint { color:#4a5563; font-size:11px; }
+  .btn.primary { border-color:#2e6f78; color:#e6edf5; }
+  .btn.ghost { background:none; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; border-color:#2a323c; color:#6b7887; }
+  select { background:#111720; border:1px solid #2a323c; color:#c7d0da; font:inherit; font-size:11.5px;
+           padding:5px 8px; border-radius:3px; }
+  select:focus-visible { outline:2px solid #4dd0e1; outline-offset:1px; }
+  label.check { display:inline-flex; gap:6px; align-items:center; cursor:pointer; }
+  .pcards { margin-top:12px; display:flex; flex-direction:column; gap:14px; }
+  .pcards > .browse-bar { margin:0 0 -4px; }
+  .pcard { border:1px solid #1e252e; border-radius:4px; padding:10px 12px 6px; background:#10151c; }
+  .pcard-head { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .pcard-head b { color:#e6edf5; font-weight:600; margin-right:4px; }
+  .pcard-head .ghost { margin-left:auto; }
+  .pcard-title { color:#8fa0b3; font-size:12px; margin:0 2px 2px; }
+  .plotbox.page-plot { min-height:300px; }
+  .pcard .hint { margin:4px 2px; color:#ffb74d; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; }
+  .chip { display:inline-flex; align-items:center; gap:4px; padding:2px 2px 2px 8px; font-size:11px;
+          border:1px solid #2a323c; border-left:3px solid; border-radius:3px; background:#141920; color:#c7d0da; }
+  .chip-x { background:none; border:0; color:#6b7887; cursor:pointer; font:inherit; font-size:13px;
+            line-height:1; padding:0 5px; }
+  .chip-x:hover, .chip-x:focus-visible { color:#f06292; outline:none; }
   @media (prefers-reduced-motion:no-preference) { .tab { transition:color .12s; } }
 </style>
 </head>
@@ -1004,17 +1026,179 @@ const KNOWN_PAGES = [
     ["Reference voltages  (V)", ["INV_Reference_Voltage_1_5","INV_Reference_Voltage_2_5","INV_Reference_Voltage_5_0","INV_Reference_Voltage_12_0"]],
     ["Parameter read/write channel", ["VCU_INV_Parameter_Address_Command","VCU_INV_Read_Write_Command","VCU_INV_Data_Command","INV_Parameter_Address_Response","INV_Write_Success","INV_Data_Response"]],
   ]},
-  { title: "Battery & BMS", blurb: "Battery voltage, current, and state-of-charge, plus the BMS's own feedback.", groups: [
-    ["Pack voltage  (V)", ["BMS_Pack_Voltage"]],
-    ["Pack current  (A)", ["BMS_Pack_Current"]],
-    ["State of charge  (%)", ["BMS_State_of_Charge"]],
-    ["BMS feedback", ["INV_BMS_Active","INV_BMS_Torque_Limiting","INV_BMS_Faults"]],
+  { title: "Battery & BMS", blurb: "EMUS BMS pack measurements — voltage, current, charge, cell temperatures and balancing.", groups: [
+    ["Pack voltage  (V)", ["VoltOverallParams_TotalVolt"]],
+    ["Cell voltage, min / avg / max  (V)", ["VoltOverallParam_MinCellVoltage","VoltOverallParam_AvrgCellVoltage","VoltOverallParam_MaxCellVoltage"]],
+    ["Pack current  (A)", ["SOCParams_Current"]],
+    ["State of charge & health  (%)", ["SOCParams_EstimatedUserSOC","SOC_Params_EstimatedSOH"]],
+    ["Estimated charge  (Ah)", ["SOCParams_Estimated_Charge"]],
+    ["Cell temperature, min / avg / max  (°C)", ["CellOverallPar_MinCellTemp","CellOverallPar_AvgCellTemp","CellOverallPar_MaxCellTemp"]],
+    ["Cell module temperature, min / avg / max  (°C)", ["CellModOverallPar_MinCellModTemp","CellModOverallPar_AvgCellModTemp","CellModOverallPar_MaxCellModTemp"]],
+    ["Cell balancing rate, min / avg / max  (%)", ["CellBalancPar_MinCellBalancRate","CellBalancPar_AvgCellBalancRate","CellBalancPar_MaxCellBalancRate"]],
+    ["Inverter BMS feedback", ["INV_BMS_Active","INV_BMS_Torque_Limiting"]],
+  ]},
+  { title: "BMS status & faults", blurb: "EMUS BMS outputs, inputs, charging state and diagnostic flags (0 = off / OK, 1 = on / active).", groups: [
+    ["Charging stage & last error", ["OverallParams_ChargingStage","OverallParams_LastChargingError"]],
+    ["Charging stage duration  (min)", ["OverallParams_ChrgStageDurat"]],
+    ["BMS outputs", ["OverallParams_BatteryContactor","OverallParams_ContactorPreCharge","OverallParams_ChargerEnable","OverallParams_HeaterEnable",
+                     "OverallParams_BatteryFan","OverallParams_PowerReduction","OverallParams_ChargingInterlock","OverallParams_DCDC_Control"]],
+    ["BMS inputs", ["OverallParams_IgnitionKey","OverallParams_ChargerMains","OverallParams_FastCharge","OverallParams_LeakageSensor"]],
+    ["Cell protections", ["DiagnosticCodes_CellUnderVoltage","DiagnosticCodes_CellOverVoltage","DiagnosticCodes_CellVoltDev","DiagnosticCodes_CellOverHeat",
+                          "DiagnosticCodes_CellUnderHeat","DiagnosticCodes_CellModOverHeat","DiagnosticCodes_CellModUnderHeat","DiagnosticCodes_NoCellComm","DiagnosticCodes_Wirebreak"]],
+    ["Pack protections", ["DiagnosticCodes_PackUnderVoltage","DiagnosticCodes_PackOverVoltage","DiagnosticCodes_PackVoltDev","DiagnosticCodes_ParStringVoltDev",
+                          "DiagnosticCodes_ChrgOverCurrent","DiagnosticCodes_DchrgOvrCurrent","DiagnosticCodes_NoCurrentSensor","DiagnosticCodes_Leakage",
+                          "DiagnosticCodes_VoltReadDev","DiagnosticCodes_ExtTempSensLoss"]],
+    ["Power-reduction warnings", ["DiagnosticCodes_UnderVoltRed","DiagnosticCodes_DischgOvrCurrRed","DiagnosticCodes_ModOvrHeatRed","DiagnosticCodes_CellOvrHeatRed",
+                                  "DiagnosticCodes_MS_CanMalfRed","DiagnosticCodes_MS_ConfMMRed"]],
+    ["BMS comms & config errors", ["DiagnosticCodes_MS_ConfError","DiagnosticCodes_MSCommCANErr","DiagnosticCodes_MSIntCANError"]],
+    ["Status & data validity", ["DiagnosticCodes_ChargerConnected","DiagnosticCodes_BatChrgFinished","DiagnosticCodes_NumOfCellsValid","DiagnosticCodes_CellVoltValidity",
+                                "DiagnosticCodes_CellTempValid","DiagnosticCodes_CellModTempValid","DiagnosticCodes_CellBalancValid","DiagnosticCodes_VoltExtTempValid"]],
+  ]},
+  /* M175 is the inverter's fault-capture buffer. It records ~160 samples around
+     a fault, then replays them over CAN one record (6 multiplexed frames) at a
+     time, so these traces are plotted at transmit time, not capture time. */
+  { title: "Inverter diag dump", blurb: "M175 fault-capture buffer. The inverter sends it after a run fault: samples taken around the fault, replayed slowly — the time axis is when each record was sent, not when it was measured.", groups: [
+    ["Resolver angle  (°)", ["INV_Diag_Gamma_Resolver","INV_Diag_Gamma_Observer"]],
+    ["Resolver sin / cos  (raw — DBC factor unverified)", ["INV_Diag_Sin","INV_Diag_Cos"]],
+    ["Phase currents  (A)", ["INV_Diag_Ia","INV_Diag_Ib","INV_Diag_Ic"]],
+    ["Current commands  (A)", ["INV_Diag_Iq_cmd","INV_Diag_Id_cmd","INV_Diag_FW_Output"]],
+    ["Voltage commands  (V)", ["INV_Diag_Vq_Cmd","INV_Diag_Vd_Cmd","INV_Diag_Vqs_Cmd"]],
+    ["DC bus  (V)", ["INV_Diag_Vdc"]],
+    ["12 V supply  (V)", ["INV_Diag_12V"]],
+    ["Modulation index", ["INV_Diag_Mod_Index"]],
+    ["Run faults at capture", ["INV_Diag_Run_Faults_Lo","INV_Diag_Run_Faults_Hi"]],
   ]}
 ];
 
 const CONSTANT_SIGNALS = new Set([
-  "INV_DateCode_MMDD","INV_DateCode_YYYY","INV_Project_Code_EEP_Ver","INV_SW_Version"
+  "INV_DateCode_MMDD","INV_DateCode_YYYY","INV_Project_Code_EEP_Ver","INV_SW_Version",
+  "OverallParams_NumberOfCells_MSB","OverallParams_NumberOfCells_LSB"
 ]);
+
+/* Signals that only repeat information shown elsewhere, or are frame
+   bookkeeping. The four TotalVolt bytes in 0x101 are the pieces of
+   VoltOverallParams_TotalVolt, which 0x109 already carries whole; M175's
+   record/segment numbers just index the diagnostic buffer. */
+const REDUNDANT_SIGNALS = new Set([
+  "VoltOverallParams_TotalVolt_MSB","VoltOverallParams_TotalVolt_3rd",
+  "VoltOverallParams_TotalVolt_2nd","VoltOverallParams_TotalVolt_LSB",
+  "INV_Diag_Record","INV_Diag_Segment"
+]);
+
+/* Messages that resend signals another message already owns. The BMS repeats
+   min/avg/max cell voltage in 0x109 alongside 0x101; merging the two by name
+   would interleave both frames into one trace, so 0x109's copies are dropped. */
+const DUPLICATE_SIGNALS = {
+  "0x00000109": new Set(["VoltOverallParam_MinCellVoltage","VoltOverallParam_MaxCellVoltage","VoltOverallParam_AvrgCellVoltage"])
+};
+
+/* String values the logger writes for DBC value tables (VAL_). OFF/ON and
+   DISABLED/ENABLED map the same everywhere; the rest are per signal. Any other
+   string gets a code in the order it is first seen, so it still plots. */
+const GENERIC_ENUM = { "OFF":0, "ON":1, "DISABLED":0, "ENABLED":1 };
+const SIGNAL_ENUMS = {
+  "OverallParams_ChargingStage": { "CHARGE_STAGE_DISCONNECTED":0, "CHARGE_STAGE_PREHEAT":1, "CHARGE_STAGE_PRECHARGE":2, "CHARGE_STAGE_CHARGE":3,
+                                   "CHARGE_STAGE_BALANCE":4, "CHARGE_STAGE_FINISHED":5, "CHARGE_STAGE_ERROR":6 },
+  "OverallParams_LastChargingError": { "NO ERROR":0, "NO CELL COMMUNICATION":1, "NO CELL COMMUNICATION 2":2, "MAX CHARG STAGE DURATION EXPIRED":3,
+                                       "CELL COMMUNICATION LOST":4, "CANT SET CELL MODULE BALANCING":5, "CELL OR CELL MODULE TEMP TO HIGH":6,
+                                       "CELL COMMUNICATION LOST 2":7, "NUMBER OF CELLS MISMATCH":8, "CELL OVER VOLTAGE":9, "CELL PROTECTION EVENT OCCURRED":10 },
+  "ContactorControl_ContactorState": { "OPEN":0, "CLOSE":1 },
+  "Charger_Control": { "CHARGING_DISABLED":0, "CHARGING_ENABLED":1, "REQUEST_FOR_STATE":2 },
+  "Bms_Control": { "Start Charging":0, "Stop Charging":1 },
+  "Charger_CommunicationState": { "Normal":0, "Comm Receiving Time-out":1 },
+  "Charger_HardwareFailure": { "Normal":0, "Hardware Failure":1 },
+  "Charger_HighTempProtection": { "Normal":0, "Over Temperature Protection":1 },
+  "Charger_InputVoltageProtection": { "Normal":0, "Incrrt Input V/Chrg Stop Working":1 },
+  "Charger_StartingState": { "Normal":0, "Bat Disconnecting Or Reverse":1 },
+  "LoginLevel": { "GUEST":0, "USER":1, "ADMIN":2 },
+};
+
+/* arb_id -> DBC message name, generated from epbr2026_DBC_v1.0.dbc. */
+const MESSAGE_NAMES = {
+  "0x00000001":"CAN_VCU_SET_ACB_STATE_ID", "0x00000002":"CAN_ACU_TO_VCU_ID", "0x00000003":"CAN_VCU_TO_ACU_ID",
+  "0x00000096":"CAR_ERROR_STATE", "0x000000A0":"M160_Temperature_Set_1", "0x000000A1":"M161_Temperature_Set_2",
+  "0x000000A2":"M162_Temperature_Set_3", "0x000000A3":"M163_Analog_Input_Voltages", "0x000000A4":"M164_Digital_Input_Status",
+  "0x000000A5":"M165_Motor_Position_Info", "0x000000A6":"M166_Current_Info", "0x000000A7":"M167_Voltage_Info",
+  "0x000000A8":"M168_Flux_ID_IQ_Info", "0x000000A9":"M169_Internal_Voltages", "0x000000AA":"M170_Internal_States",
+  "0x000000AB":"M171_Fault_Codes", "0x000000AC":"M172_Torque_And_Timer_Info", "0x000000AD":"M173_Modulation_And_Flux_Info",
+  "0x000000AE":"M174_Firmware_Info", "0x000000AF":"M175_Diag_Data_Message", "0x000000B0":"M176_Fast_Info",
+  "0x000000B1":"CAN_MC_RX_TORQUE_CAPABILITY", "0x000000BC":"M188_U2C_Message_Rxd", "0x000000C0":"M192_Command_Message",
+  "0x000000C1":"M193_Read_Write_Param_Command", "0x000000C2":"M194_Read_Write_Param_Response", "0x000000C3":"M195_Pedal_Press_Percent",
+  "0x00000100":"Overall_Parameters_Std", "0x00000101":"Battery_Volt_1_Overall_Param_Std", "0x00000102":"Cell_Mod_Temp_Overall_Param_Std",
+  "0x00000103":"Cell_Balanc_Rate_Overall_Par_Std", "0x00000105":"State_Of_Charge_Param_Std", "0x00000106":"Energy_Parameters_Std",
+  "0x00000107":"Diagnostic_Codes_Std", "0x00000108":"Cell_Temp_Overall_Param_Std", "0x00000109":"Battery_Volt_2_Overall_Param_Std",
+  "0x0000010D":"CAN_ENERGY_METER_MEASUREMENT_MSG", "0x00000111":"Individual_Cells_Volt_Std_B", "0x00000112":"Individual_Cell_Mod_Temp_Std_B",
+  "0x00000113":"Individual_Cell_Bal_Rate_Std_B", "0x00000114":"Individual_Cell_Temp_Std_B", "0x000001B9":"Overall_Parameters2_Std",
+  "0x000001BE":"Battery_Volt_2_Overall_Param_Std", "0x000001C5":"State_Of_Charge_Health_Param_Std", "0x000001D5":"Individual_Cells_Voltages_Std_A1",
+  "0x000001D6":"Individual_Cells_Voltages_Std_A2", "0x000001D7":"M187_U2C_Command_Txd", "0x000001F5":"Individual_Cell_Mod_Temp_Std_A1",
+  "0x000001F6":"Individual_Cell_Mod_Temp_Std_A2", "0x00000202":"BMS_Current_Limit", "0x00000215":"Individual_Cell_Bal_Rate_Std_A1",
+  "0x00000216":"Individual_Cell_Bal_Rate_Std_A2", "0x00000217":"HTL_CH_ID_SAFETY_LOOP_STATUS", "0x00000218":"HTL_CH_ID_APPS_PRESSED",
+  "0x00000219":"HTL_CH_ID_BRAKE_PRESSED", "0x00000220":"HTL_CH_ID_APPS_TO_TORQUE_REQUEST", "0x00000229":"Contactor_Control_Std",
+  "0x00000232":"Statistics_Std", "0x00000233":"Events_Std", "0x00000235":"Configuration_Parameters_Std",
+  "0x00000237":"Login_Level_Std", "0x00000238":"Login_Set_Password_Std", "0x0000023C":"ChargingStation_Std",
+  "0x0000023D":"Charger_Control_Std", "0x00000249":"HTL_CH_ID_WARNING_0", "0x00000250":"HTL_CH_ID_WARNING_1",
+  "0x00000251":"CAN_VEHICLE_SPEED", "0x00000252":"CAN_WHEEL_SPEED", "0x00000253":"CAN_LV_BATTERY_DATA",
+  "0x00000254":"CAN_SHOCK_POTENTIOMETERS", "0x00000255":"CAN_COOLING_LOOP_TEMPERATURE", "0x00000256":"CAN_FLOW_METER",
+  "0x00000257":"TWO_FOOT_RULE", "0x00000265":"BRAKE_TEMPS", "0x00000295":"Firmware_Version_Std",
+  "0x000002A5":"Serial_Number_Std", "0x000002B0":"LWS_Standard", "0x000002B5":"Individual_Cell_Temp_Std_A1",
+  "0x000002B6":"Individual_Cell_Temp_Std_A2", "0x0000030D":"Team_Data_1_Message", "0x0000030E":"Team_Data_2_Message",
+  "0x0000040D":"CAN_ENERGY_METER_STATUS", "0x00000521":"Neuro1_Battery_Data", "0x00000522":"Neuro2_Battery_Data",
+  "0x00000523":"Neuro3_Battery_Data", "0x00000530":"Neuro4_BimData", "0x0000060D":"CAN_ENERGY_METER_TEMPERATURE",
+  "0x000007C0":"LWS_Config", "0x00000AA5":"INV_Diag_Buffer", "0x1806E5F4":"Bms_Transmits_Cgh_Receive_Msgs",
+  "0x18F02980":"SlopeSensor_Type2", "0x18F02A80":"AngularRate", "0x18F02D80":"Acceleration",
+  "0x18FF50E5":"Bms_Receive_Chg_Trans_Msgs", "0x18FF6A80":"Magnetometer", "0x19B50000":"Overall_Parameters_Ext",
+  "0x19B50001":"Battery_Volt_1_Overall_Param_Ext", "0x19B50002":"Cell_Mod_Temp_Overall_Param_Ext", "0x19B50003":"Cell_Balanc_Rate_Overall_Par_Ext",
+  "0x19B50004":"Overall_Parameters2_Ext", "0x19B50006":"Energy_Parameters_2_Ext", "0x19B50007":"Diagnostic_Codes_Ext",
+  "0x19B50008":"Cell_Temp_Overall_Params_Ext", "0x19B50009":"Battery_Volt_2_Overall_Param_Ext", "0x19B5000B":"Individual_Cells_Volt_Ext_B",
+  "0x19B5000C":"Indiv_Cell_Mod_Temp_Inter_Ext_B", "0x19B5000D":"Indiv_Cell_Balancing_Ext_Extd_B", "0x19B5000E":"Individual_Cell_Temp_Ext_B",
+  "0x19B50010":"State_Of_Charge_Health_Param_Ext", "0x19B50100":"Individual_Cells_Volt_Ext_A1", "0x19B50101":"Individual_Cells_Volt_Ext_A2",
+  "0x19B50200":"Indiv_Cell_Mod_Temp_Inter_Ext_A1", "0x19B50201":"Indiv_Cell_Mod_Temp_Inter_Ext_A2", "0x19B50300":"Indiv_Cell_Balancing_Ext_Extd_A1",
+  "0x19B50301":"Indiv_Cell_Balancing_Ext_Extd_A2", "0x19B50400":"Configuration_Parameters_Ext", "0x19B50401":"Contactor_Control_Ext",
+  "0x19B50402":"Login_Level_Ext", "0x19B50403":"Login_Set_Password_Status_Ext", "0x19B50404":"Statistics_Ext",
+  "0x19B50405":"Events_Ext", "0x19B50407":"ChargingStation_Ext", "0x19B50408":"Charger_Control_Ext",
+  "0x19B50500":"State_Of_Charge_Param_Ext", "0x19B50600":"Energy_Parameters_Ext", "0x19B50700":"Firmware_Version_Ext",
+  "0x19B50710":"Serial_Number_Ext", "0x19B50800":"Individual_Cell_Temp_Ext_A1", "0x19B50801":"Individual_Cell_Temp_Ext_A2",
+};
+
+const msgName  = arb => MESSAGE_NAMES[arb] || arb;
+const msgLabel = arb => MESSAGE_NAMES[arb] ? MESSAGE_NAMES[arb] + " (" + arb.replace(/^0x0+(?=.)/, "0x") + ")" : arb;
+
+/* Signal units from the DBC, grouped by unit (generated from epbr2026_DBC_v1.0.dbc). */
+const SIGNAL_UNITS = (() => {
+  const byUnit = {
+    "°C": "BackLeftBrakeTemp BackRightBrakeTemp CellModOverallPar_AvgCellModTemp CellModOverallPar_MaxCellModTemp CellModOverallPar_MinCellModTemp CellOverallPar_AvgCellTemp CellOverallPar_MaxCellTemp CellOverallPar_MinCellTemp FrontLeftBrakeTemp FrontRightBrakeTemp INV_Control_Board_Temperature INV_Gate_Driver_Board INV_Module_A INV_Module_B INV_Module_C INV_Motor_Temperature INV_RTD1_Temperature INV_RTD2_Temperature INV_RTD3_Temperature INV_RTD4_Temperature INV_RTD5_Temperature IndividualCellModTemp_Data_0 IndividualCellModTemp_Data_1 IndividualCellModTemp_Data_10 IndividualCellModTemp_Data_11 IndividualCellModTemp_Data_12 IndividualCellModTemp_Data_13 IndividualCellModTemp_Data_14 IndividualCellModTemp_Data_15 IndividualCellModTemp_Data_2 IndividualCellModTemp_Data_3 IndividualCellModTemp_Data_4 IndividualCellModTemp_Data_5 IndividualCellModTemp_Data_6 IndividualCellModTemp_Data_7 IndividualCellModTemp_Data_8 IndividualCellModTemp_Data_9 IndividualCellTemp_Data_0 IndividualCellTemp_Data_1 IndividualCellTemp_Data_10 IndividualCellTemp_Data_11 IndividualCellTemp_Data_12 IndividualCellTemp_Data_13 IndividualCellTemp_Data_14 IndividualCellTemp_Data_15 IndividualCellTemp_Data_2 IndividualCellTemp_Data_3 IndividualCellTemp_Data_4 IndividualCellTemp_Data_5 IndividualCellTemp_Data_6 IndividualCellTemp_Data_7 IndividualCellTemp_Data_8 IndividualCellTemp_Data_9 Max_Temp Min_Temp Neuro4_AverageCellTemperature TempSensor1 TempSensor2 TempSensor3 TempSensor4 Temp_0 Temp_1 Temp_10 Temp_11 Temp_12 Temp_13 Temp_14 Temp_15 Temp_16 Temp_17 Temp_18 Temp_19 Temp_2 Temp_20 Temp_21 Temp_22 Temp_23 Temp_24 Temp_25 Temp_26 Temp_27 Temp_28 Temp_29 Temp_3 Temp_30 Temp_31 Temp_4 Temp_5 Temp_6 Temp_7 Temp_8 Temp_9",
+    "V": "Bms_MaxAllowedChrgVolt Charger_OutputVoltage ChargingStation_ACVoltage EnergyMeterVoltage INV_Analog_Input_1 INV_Analog_Input_2 INV_Analog_Input_3 INV_Analog_Input_4 INV_Analog_Input_5 INV_Analog_Input_6 INV_DC_Bus_Voltage INV_Diag_12V INV_Diag_Cos INV_Diag_Sin INV_Diag_Vd_Cmd INV_Diag_Vdc INV_Diag_Vq_Cmd INV_Diag_Vqs_Cmd INV_Fast_DC_Bus_Voltage INV_Output_Voltage INV_Reference_Voltage_12_0 INV_Reference_Voltage_1_5 INV_Reference_Voltage_2_5 INV_Reference_Voltage_5_0 INV_VAB_Vd_Voltage INV_VBC_Vq_Voltage IndividualCellVoltage_Data_0 IndividualCellVoltage_Data_1 IndividualCellVoltage_Data_10 IndividualCellVoltage_Data_11 IndividualCellVoltage_Data_12 IndividualCellVoltage_Data_13 IndividualCellVoltage_Data_14 IndividualCellVoltage_Data_15 IndividualCellVoltage_Data_2 IndividualCellVoltage_Data_3 IndividualCellVoltage_Data_4 IndividualCellVoltage_Data_5 IndividualCellVoltage_Data_6 IndividualCellVoltage_Data_7 IndividualCellVoltage_Data_8 IndividualCellVoltage_Data_9 LVBatteryVoltage Neuro2_BatteryVoltMinDischrg Neuro3_BatVoltMaxRegen VoltOverallParam_AvrgCellVoltage VoltOverallParam_MaxCellVoltage VoltOverallParam_MinCellVoltage VoltOverallParams_TotalVolt",
+    "%": "CellBalancPar_AvgCellBalancRate CellBalancPar_MaxCellBalancRate CellBalancPar_MinCellBalancRate IndividualCellBalancRate_Data_0 IndividualCellBalancRate_Data_1 IndividualCellBalancRate_Data_10 IndividualCellBalancRate_Data_11 IndividualCellBalancRate_Data_12 IndividualCellBalancRate_Data_13 IndividualCellBalancRate_Data_14 IndividualCellBalancRate_Data_15 IndividualCellBalancRate_Data_2 IndividualCellBalancRate_Data_3 IndividualCellBalancRate_Data_4 IndividualCellBalancRate_Data_5 IndividualCellBalancRate_Data_6 IndividualCellBalancRate_Data_7 IndividualCellBalancRate_Data_8 IndividualCellBalancRate_Data_9 LVBatterySOC Neuro1_DepthOfDischarge Pedal_Press_Percent SOCParams_EstimatedUserSOC SOCSOHParams_SOC SOCSOHParams_SOH SOCSOHParams_USER_SOC SOC_Params_EstimatedSOH",
+    "A": "Bms_MaxAllowedChrgCurr Charger_OutputCurrent ChargingStation_ACCurrentLim ChargingStation_DCCurrentLim EnergyMeterCurrent INV_DC_Bus_Current INV_Diag_FW_Output INV_Diag_Ia INV_Diag_Ib INV_Diag_Ic INV_Diag_Id_cmd INV_Diag_Iq_cmd INV_Flux_Weakening_Output INV_Id INV_Id_Command INV_Iq INV_Iq_Command INV_Max_Charge_Current INV_Max_Discharge_Current INV_Phase_A_Current INV_Phase_B_Current INV_Phase_C_Current LVBatteryCurrent Neuro2_Dischrg_Current_Warn Neuro3_ChrgCurrentLimit SOCParams_Current",
+    "Nm": "HTL_CH_ID_APPS_TO_TORQUE_REQUEST INV_Commanded_Torque INV_Fast_Torque_Command INV_Fast_Torque_Feedback INV_Torque_Feedback INV_Torque_Shudder VCU_INV_Torque_Command VCU_INV_Torque_Limit_Command",
+    "kph": "BackLeftWheelSpeed BackRightWheelSpeed FrontLeftWheelSpeed FrontRightWheelSpeed Vehicle_Speed",
+    "°": "INV_Delta_Resolver_Filtered INV_Diag_Gamma_Observer INV_Diag_Gamma_Resolver INV_Motor_Angle_Electrical LWS_ANGLE",
+    "mm": "BackLeftShockPotentiometer BackRightShockPotentiometer FrontLeftShockPotentiometer FrontRightShockPotentiometer",
+    "deg/s": "LWS_SPEED PitchRate RollRate YawRate",
+    "m/s^2": "LateralAccel LongitudinalAccel VerticalAccel",
+    "Gauss": "MagX MagY MagZ",
+    "rpm": "INV_Fast_Motor_Speed INV_Motor_Speed VCU_INV_Speed_Command",
+    "Wh": "EnergyMeterEnergy Energy_EstimatedConsumption",
+    "W": "ChargingStation_PowerLimit LVBatteryPower",
+    "rad": "PitchAngle RollAngle",
+    "Wb": "INV_Flux_Command INV_Flux_Feedback",
+    "L/s": "FlowRate",
+    "s": "INV_Power_On_Timer",
+    "kHz": "INV_PWM_Frequency",
+    "Hz": "INV_Electrical_Output_Frequency",
+    "kWh": "Energy_EstimatedEnergy",
+    "min": "OverallParams_ChrgStageDurat",
+    "Ah": "SOCParams_Estimated_Charge",
+  };
+  const m = {};
+  for (const u in byUnit) for (const n of byUnit[u].split(" ")) m[n] = u;
+  return m;
+})();
+
+/* A name that collided across messages is stored as "name @0x..."; units and
+   enum tables are keyed by the plain DBC name. */
+const baseName = n => n.replace(/ @0x[0-9A-Fa-f]+$/, "");
+const unitOf = n => SIGNAL_UNITS[baseName(n)] || "";
 
 /* ------------------------------------------------------------------ state */
 let SIG = new Map();
@@ -1028,7 +1212,7 @@ const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.cla
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
 
 /* ------------------------------------------------------------------ parse */
-const PAIR = /'([^']+)'\s*:\s*(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?|True|False)/g;
+const PAIR = /'([^']+)'\s*:\s*(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?|True|False|'[^']*')/g;
 
 function loadFile(file) {
   $("#drop").style.display = "none";
@@ -1066,14 +1250,32 @@ function loadFile(file) {
         if (!isFinite(t) || !d) continue;
         rows++;
         const arb = r.arb_id || "", net = r.network_id || "";
+        const dup = DUPLICATE_SIGNALS[arb];
         PAIR.lastIndex = 0;
         let m;
         while ((m = PAIR.exec(d)) !== null) {
-          const name = m[1], raw = m[2];
-          const val = raw === "True" ? 1 : raw === "False" ? 0 : +raw;
-          if (!isFinite(val)) continue;
+          let name = m[1];
+          const raw = m[2];
+          if (dup && dup.has(name)) continue;
           let s = acc.get(name);
-          if (!s) { s = { t: [], v: [], arb, net, uniq: new Set(), min: Infinity, max: -Infinity }; acc.set(name, s); }
+          /* Same signal name from a different message: keep it as its own trace
+             rather than interleaving two frames into one line. */
+          if (s && s.arb !== arb) { name = name + " @" + arb; s = acc.get(name); }
+          if (!s) { s = { t: [], v: [], arb, net, uniq: new Set(), min: Infinity, max: -Infinity, codes: null, lab: null }; acc.set(name, s); }
+          let val;
+          if (raw[0] === "'") {
+            const str = raw.slice(1, -1), table = SIGNAL_ENUMS[m[1]];
+            if (table && str in table) val = table[str];
+            else if (str in GENERIC_ENUM) val = GENERIC_ENUM[str];
+            else {
+              if (!s.codes) s.codes = new Map();
+              if (!s.codes.has(str)) s.codes.set(str, s.codes.size);
+              val = s.codes.get(str);
+            }
+            if (!s.lab) s.lab = new Map();   // value -> original text, for hover and axis ticks
+            s.lab.set(val, str);
+          } else val = raw === "True" ? 1 : raw === "False" ? 0 : +raw;
+          if (!isFinite(val)) continue;
           s.t.push(t); s.v.push(val);
           if (s.uniq.size <= DISCRETE_MAX_UNIQUE + 1) s.uniq.add(val);
           if (val < s.min) s.min = val;
@@ -1114,7 +1316,7 @@ function finalize(acc, rows, name) {
     const t = Float64Array.from(s.t), v = Float64Array.from(s.v);
     if (t[0] < TMIN) TMIN = t[0];
     if (t[t.length - 1] > TMAX) TMAX = t[t.length - 1];
-    SIG.set(k, { t, v, arb: s.arb, net: s.net, min: s.min, max: s.max, uniq: s.uniq.size });
+    SIG.set(k, { t, v, arb: s.arb, net: s.net, min: s.min, max: s.max, uniq: s.uniq.size, lab: s.lab });
   }
   if (!(TMAX > TMIN)) { TMIN = 0; TMAX = 1; }
   FRAMES = rows;
@@ -1122,7 +1324,7 @@ function finalize(acc, rows, name) {
   $("#meta").innerHTML =
     "<b>" + esc(name) + "</b> &nbsp;·&nbsp; <b>" + FRAMES.toLocaleString() + "</b> frames &nbsp;·&nbsp; <b>" +
     SIG.size + "</b> decoded signals &nbsp;·&nbsp; <b>" + TMIN.toFixed(2) + "–" + TMAX.toFixed(2) +
-    " s</b> (" + (TMAX - TMIN).toFixed(1) + " s) &nbsp;·&nbsp; drag to zoom, double-click to reset" +
+    " s</b> (" + (TMAX - TMIN).toFixed(1) + " s) &nbsp;·&nbsp; drag to zoom time, double-click to step back" +
     (HAS_WEBGL ? "" : " &nbsp;·&nbsp; <span style='color:#ffb74d'>SVG mode (no WebGL here)</span>");
   buildPages();
 }
@@ -1166,6 +1368,28 @@ function expandSteps(t, v) {
   return [outT, outV];
 }
 
+/* A silence much longer than the signal's usual frame spacing (logger dropout,
+   a message that only bursts, like M175) is a gap, not a straight line between
+   the samples either side of it. */
+function gapThreshold(t) {
+  const n = t.length;
+  if (n < 3) return Infinity;
+  const step = Math.max(1, Math.floor(n / 2000)), d = [];
+  for (let i = step; i < n; i += step) d.push((t[i] - t[i - step]) / step);
+  d.sort((a, b) => a - b);
+  return Math.max(1, 25 * d[d.length >> 1]);
+}
+
+function breakGaps(t, v, thresh) {
+  if (!isFinite(thresh)) return [t, v];
+  const outT = [t[0]], outV = [v[0]];
+  for (let i = 1; i < t.length; i++) {
+    if (t[i] - t[i - 1] > thresh) { outT.push((t[i] + t[i - 1]) / 2); outV.push(null); }
+    outT.push(t[i]); outV.push(v[i]);
+  }
+  return [outT, outV];
+}
+
 function prep(name) {
   if (PREP.has(name)) return PREP.get(name);
   const s = SIG.get(name);
@@ -1183,7 +1407,7 @@ function prep(name) {
       [t, v] = expandSteps(ct, cv);
     }
   }
-  if (!discrete) [t, v] = minmaxDecimate(s.t, s.v, MAX_PTS);
+  if (!discrete) [t, v] = breakGaps(...minmaxDecimate(s.t, s.v, MAX_PTS), gapThreshold(s.t));
 
   const out = { t, v, discrete, n: s.t.length };
   PREP.set(name, out);
@@ -1205,7 +1429,7 @@ function buildPages() {
     if (groups.length) pageDefs.push({ title: p.title, blurb: p.blurb, groups });
   }
 
-  const leftovers = [...SIG.keys()].filter(n => !used.has(n) && !CONSTANT_SIGNALS.has(n));
+  const leftovers = [...SIG.keys()].filter(n => !used.has(n) && !CONSTANT_SIGNALS.has(n) && !REDUNDANT_SIGNALS.has(n));
   if (leftovers.length) {
     const byArb = new Map();
     for (const n of leftovers) {
@@ -1217,9 +1441,9 @@ function buildPages() {
     for (let i = 0; i < arbs.length; i += 4) {
       const s = arbs.slice(i, i + 4);
       pageDefs.push({
-        title: "Other · " + s[0] + (s.length > 1 ? "–" + s[s.length - 1] : ""),
-        blurb: "Signals not covered by the built-in layout, grouped by arbitration ID.",
-        groups: s.map(a => [a + "  ·  " + byArb.get(a).length + " signals", byArb.get(a)])
+        title: "Other · " + msgName(s[0]) + (s.length > 1 ? " +" + (s.length - 1) : ""),
+        blurb: "Signals not covered by the built-in layout, grouped by DBC message.",
+        groups: s.map(a => [msgLabel(a) + "  ·  " + byArb.get(a).length + " signals", byArb.get(a)])
       });
     }
   }
@@ -1236,7 +1460,7 @@ function buildPages() {
     const sec = el("section", "page");
     sec.hidden = i !== 0;
     const bl = el("p", "blurb"); bl.textContent = p.blurb; sec.appendChild(bl);
-    const plot = el("div", "plotbox"); sec.appendChild(plot);
+    const plot = el("div", "pcards"); sec.appendChild(plot);
     p.el = plot; p.rendered = false;
     main.appendChild(sec);
   });
@@ -1252,9 +1476,9 @@ function buildPages() {
 let currentPage = -1;
 
 /* Browsers allow only ~16 live WebGL contexts and each Plotly gl plot claims
-   several. Leaving every visited page rendered means the earliest pages get
-   their context revoked and silently go blank. So exactly one plot stays
-   alive; redrawing from the cached traces is cheap. */
+   three. Leaving every visited page rendered means the earliest pages get
+   their context revoked and silently go blank. So only the visible page keeps
+   its plots alive; redrawing from the cached traces is cheap. */
 function showPage(i) {
   const tabs = [...document.querySelectorAll(".tab")];
   const secs = [...document.querySelectorAll(".page")];
@@ -1277,99 +1501,303 @@ function showPage(i) {
   });
 }
 
+/* Each group on a page is its own plot, laid out like Browse: one y-axis per
+   unit, x zoom shared across the page. Pages can hold ten or more groups, more
+   than the WebGL context budget allows (see showPage), so they draw as SVG. */
 function renderPage(p) {
-  try {
-    const rows = [];
-    for (const [gt, names] of p.groups) {
-      const got = names.map(n => [n, prep(n)]).filter(x => x[1]);
-      if (got.length) rows.push([gt, got]);
+  const link = p.link || (p.link = timeLink());
+  link.clear();
+  p.el.innerHTML = "";
+  const bar = el("div", "browse-bar");
+  const reset = el("button", "btn"); reset.textContent = "Reset zoom";
+  reset.addEventListener("click", () => link.reset());
+  const hint = el("span", "hint");
+  hint.textContent = "drag to zoom time · double-click to step back · y-axes fit the visible data";
+  bar.append(reset, hint);
+  p.el.appendChild(bar);
+
+  let drawn = 0;
+  for (const [gt, names] of p.groups) {
+    const got = names.map(n => [n, prep(n)]).filter(x => x[1]);
+    if (!got.length) continue;
+    const card = el("div", "pcard");
+    const h = el("div", "pcard-title"); h.textContent = gt;
+    const box = el("div", "plotbox page-plot");
+    card.append(h, box);
+    p.el.appendChild(card);
+    try {
+      plotOverlay(box, got, { grouping: "unit-shared", height: 300, svg: true, xRange: link.range })
+        .then(() => link.attach(box));
+      drawn++;
+    } catch (e) {
+      box.innerHTML = '<p class="blurb" style="color:#f06292">Could not draw this plot: ' + esc(e && e.message) + '</p>';
     }
-    if (!rows.length) { p.el.innerHTML = '<p class="blurb">Nothing to plot on this page.</p>'; return; }
-    plotStack(p.el, rows);
-  } catch (e) {
-    p.el.innerHTML = '<p class="blurb" style="color:#f06292">Could not draw this page: ' +
-                     esc(e && e.message) + '</p>';
   }
+  if (!drawn) p.el.innerHTML = '<p class="blurb">Nothing to plot on this page.</p>';
 }
 
-/* rows = [[subplotTitle, [[name, prepped], ...]], ...] — stacked, x-axes linked */
-function plotStack(node, rows) {
+/* ------------------------------------------------------------------ plotting */
+/* Y-axes are fixed so a drag zooms time only; timeLink refits them instead.
+   Plotly's own double-click (reset everything to the whole log) is off. */
+const PLOT_CONFIG = { responsive: true, scrollZoom: true, displaylogo: false, doubleClick: false,
+                      modeBarButtonsToRemove: ["lasso2d", "select2d", "autoScale2d", "resetScale2d"] };
+const GRID = "#1e252e";
+
+function baseLayout(height) {
+  return {
+    height, paper_bgcolor: "#0e1116", plot_bgcolor: "#141920",
+    font: { family: "ui-monospace, SFMono-Regular, Menlo, monospace", size: 11.5, color: "#c7d0da" },
+    legend: { bgcolor: "rgba(0,0,0,0)", groupclick: "toggleitem", font: { size: 10.5 } },
+    hovermode: "x unified",
+    hoverlabel: { bgcolor: "#0e1116", font: { size: 11 } }
+  };
+}
+
+function timeAxis(extra) {
+  return Object.assign({
+    showspikes: true, spikemode: "across", spikethickness: 1, spikecolor: "#5b6673",
+    gridcolor: GRID, zeroline: false, hoverformat: ".4f"
+  }, extra);
+}
+
+/* One trace. A state signal the logger wrote as text hovers as that text;
+   everything else hovers as its value plus the DBC unit. */
+function makeTrace(name, d, color, xa, ya, type) {
+  const s = SIG.get(name), u = unitOf(name);
+  const tr = {
+    type: type || TRACE_TYPE, mode: "lines", name, x: d.t, y: d.v, xaxis: xa, yaxis: ya,
+    line: { width: 1.4, color },
+    hovertemplate: "<b>" + name + "</b>  %{y:.5~g}" + (u ? " " + u : "") + "<extra></extra>"
+  };
+  if (s && s.lab) {
+    tr.text = d.v.map(v => s.lab.has(v) ? s.lab.get(v) : String(v));
+    tr.hovertemplate = "<b>" + name + "</b>  %{text}<extra></extra>";
+  }
+  return tr;
+}
+
+/* Y-axis title from the signals' shared unit (else the fallback), and for a
+   lone state signal its text labels as tick names. */
+function axisDecor(names, fallback) {
+  const units = [...new Set(names.map(unitOf))];
+  const out = {};
+  const title = units.length === 1 && units[0] ? units[0] : fallback;
+  if (title) out.title = { text: title, font: { size: 10.5 }, standoff: 6 };
+  if (names.length === 1) {
+    const s = SIG.get(names[0]);
+    if (s && s.lab && s.lab.size <= 12) {
+      const vals = [...s.lab.keys()].sort((a, b) => a - b);
+      out.tickvals = vals;
+      out.ticktext = vals.map(v => s.lab.get(v));
+    }
+  }
+  return out;
+}
+
+/* rows = [[subplotTitle, [[name, prepped], ...]], ...] — stacked, x-axes linked.
+   opts: rowH (px per row), minH, xRange, showLegend. */
+function plotStack(node, rows, opts = {}) {
   const n = rows.length;
-  const gap = n > 1 ? Math.min(0.055, 0.35 / (n - 1)) : 0;
+  const gap = n > 1 ? Math.min(opts.rowH ? 36 / (opts.rowH * n) : 0.055, 0.35 / (n - 1)) : 0;
   const h = (1 - gap * (n - 1)) / n;
-  const traces = [], layout = {}, annos = [];
+  const traces = [], annos = [];
+  const layout = baseLayout(Math.max(opts.minH || 420, (opts.rowH || 240) * n));
   let ci = 0;
 
   rows.forEach(([title, got], r) => {
     const top = 1 - r * (h + gap), bot = Math.max(0, top - h);
     const sfx = r ? String(r + 1) : "";
     const xa = "x" + sfx, ya = "y" + sfx;
-    layout["xaxis" + sfx] = {
-      anchor: ya, domain: [0, 1], showticklabels: r === n - 1,
-      showspikes: true, spikemode: "across", spikethickness: 1, spikecolor: "#5b6673",
-      gridcolor: "#1e252e", zeroline: false
-    };
-    if (r === 0) layout["xaxis"].range = [TMIN, TMAX];
+    layout["xaxis" + sfx] = timeAxis({ anchor: ya, domain: [0, 1], showticklabels: r === n - 1 });
+    if (r === 0) layout.xaxis.range = opts.xRange || [TMIN, TMAX];
     else layout["xaxis" + sfx].matches = "x";
     if (r === n - 1) layout["xaxis" + sfx].title = { text: "log time  (s)", font: { size: 11 } };
-    layout["yaxis" + sfx] = {
-      anchor: xa, domain: [bot, top],
-      gridcolor: "#1e252e", zeroline: true, zerolinecolor: "#2a323c"
-    };
+    layout["yaxis" + sfx] = Object.assign({
+      anchor: xa, domain: [bot, top], automargin: true, fixedrange: true,
+      gridcolor: GRID, zeroline: true, zerolinecolor: "#2a323c"
+    }, axisDecor(got.map(g => g[0])));
     annos.push({
       text: title, showarrow: false, xref: "paper", yref: "paper",
       x: 0, xanchor: "left", y: Math.min(1, top + 0.012), yanchor: "bottom",
       font: { size: 12, color: "#8fa0b3" }
     });
     got.forEach(([name, d], k) => {
-      traces.push({
-        type: TRACE_TYPE, mode: "lines", name: name,
-        x: d.t, y: d.v, xaxis: xa, yaxis: ya,
-        line: { width: 1.4, color: PALETTE[ci++ % PALETTE.length] },
-        legendgroup: title,
-        legendgrouptitle: k === 0 ? { text: title } : undefined,
-        hovertemplate: "<b>" + name + "</b><br>%{x:.4f} s<br>%{y}<extra></extra>"
-      });
+      const tr = makeTrace(name, d, PALETTE[ci++ % PALETTE.length], xa, ya);
+      tr.legendgroup = title;
+      if (k === 0) tr.legendgrouptitle = { text: title };
+      traces.push(tr);
     });
   });
 
-  Object.assign(layout, {
-    height: Math.max(420, 240 * n),
-    paper_bgcolor: "#0e1116", plot_bgcolor: "#141920",
-    margin: { l: 66, r: 28, t: 30, b: 50 },
-    font: { family: "ui-monospace, SFMono-Regular, Menlo, monospace", size: 11.5, color: "#c7d0da" },
-    legend: { bgcolor: "rgba(0,0,0,0)", groupclick: "toggleitem", font: { size: 10.5 } },
-    hovermode: "x unified",
-    hoverlabel: { bgcolor: "#0e1116", font: { size: 11 } },
-    annotations: annos
-  });
+  Object.assign(layout, { margin: { l: 66, r: 28, t: 30, b: 50 }, annotations: annos });
+  if (opts.showLegend === false) layout.showlegend = false;
+  return Plotly.newPlot(node, traces, layout, PLOT_CONFIG).then(() => Plotly.Plots.resize(node));
+}
 
-  Plotly.newPlot(node, traces, layout, {
-    responsive: true, scrollZoom: true, displaylogo: false,
-    modeBarButtonsToRemove: ["lasso2d", "select2d"]
-  }).then(() => Plotly.Plots.resize(node));
+/* Overlay every signal on one plot area, each group on its own y-axis so
+   signals of very different size can be compared. grouping: "unit" (same DBC
+   unit shares an axis, unitless signals get one each), "unit-shared" (same,
+   but all unitless signals share one axis — page groups are hand-picked flags
+   and states) or "signal" (one axis each). Axes alternate left/right, extra
+   ones shift outward, and an axis carrying a single signal takes its colour. */
+function overlayGroups(got, grouping) {
+  const groups = new Map();
+  got.forEach(([name], i) => {
+    const u = unitOf(name);
+    const key = grouping === "signal" ? name : u || (grouping === "unit-shared" ? "\u0000" : "\u0000" + name);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  });
+  return [...groups.values()];
+}
+
+function plotOverlay(node, got, opts = {}) {
+  const grouping = opts.grouping || "unit";
+  const type = opts.svg ? "scatter" : TRACE_TYPE;
+  const layout = baseLayout(opts.height || 460);
+  const traces = [];
+  let nl = 0, nr = 0;
+  overlayGroups(got, grouping).forEach((idx, g) => {
+    const ya = g ? "y" + (g + 1) : "y";
+    const names = idx.map(i => got[i][0]);
+    const solo = idx.length === 1;
+    const color = solo ? PALETTE[idx[0] % PALETTE.length] : "#8fa0b3";
+    const side = g % 2 ? "right" : "left";
+    if (side === "left") nl++; else nr++;
+    const ax = Object.assign({
+      side, color, automargin: true, zeroline: false, fixedrange: true,
+      showgrid: g === 0, gridcolor: GRID, tickfont: { size: 10, color }
+    }, axisDecor(names, solo ? names[0] : grouping === "unit-shared" ? "" : names.length + " signals"));
+    if (ax.title) ax.title.font.color = color;
+    if (g === 1) { ax.overlaying = "y"; ax.anchor = "x"; }
+    /* autoshift clears the neighbouring axis's ticks but not its title, so pad it. */
+    if (g >= 2) { ax.overlaying = "y"; ax.anchor = "free"; ax.autoshift = true; ax.position = side === "left" ? 0 : 1;
+                  ax.shift = side === "left" ? -24 : 24; }
+    layout["yaxis" + (g ? g + 1 : "")] = ax;
+    idx.forEach(i => traces.push(makeTrace(got[i][0], got[i][1], PALETTE[i % PALETTE.length], "x", ya, type)));
+  });
+  layout.xaxis = timeAxis({ range: opts.xRange || [TMIN, TMAX], title: { text: "log time  (s)", font: { size: 11 } } });
+  layout.margin = { l: 20 + 56 * nl, r: 20 + 56 * nr, t: 24, b: 50 };
+  Object.assign(layout.legend, { orientation: "h", x: 0, y: 1.02, yanchor: "bottom" });
+  return Plotly.newPlot(node, traces, layout, PLOT_CONFIG).then(() => Plotly.Plots.resize(node));
+}
+
+/* First index with t[i] >= x (t ascending). */
+function lowerBound(t, x) {
+  let lo = 0, hi = t.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (t[mid] < x) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+
+/* Time-axis behaviour shared by a set of plots (one page, or Browse): a zoom
+   on any member carries to all, every y-axis refits to the data in view, and
+   double-click steps back one zoom instead of jumping to the whole log. */
+function timeLink() {
+  const members = new Set();
+  const history = [];
+  let range = null;   // null = whole log
+  const full = () => [TMIN, TMAX];
+  const same = (a, b) => !!a && !!b && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
+
+  function fitY(gd) {
+    if (!gd.data) return;
+    const [x0, x1] = range || full();
+    const ext = {};
+    for (const tr of gd.data) {
+      if (tr.visible === false || tr.visible === "legendonly") continue;
+      const k = "yaxis" + (tr.yaxis || "y").slice(1);
+      const e = ext[k] || (ext[k] = [Infinity, -Infinity]);
+      const t = tr.x, v = tr.y;
+      /* Start one sample early: a step or line entering the window counts. */
+      for (let i = Math.max(0, lowerBound(t, x0) - 1); i < t.length; i++) {
+        const y = v[i];
+        if (y != null) { if (y < e[0]) e[0] = y; if (y > e[1]) e[1] = y; }
+        if (t[i] > x1) break;
+      }
+    }
+    const upd = {};
+    for (const k in ext) {
+      const [lo, hi] = ext[k];
+      if (!isFinite(lo)) continue;
+      const pad = hi > lo ? (hi - lo) * 0.06 : Math.max(Math.abs(hi) * 0.05, 0.5);
+      upd[k + ".range"] = [lo - pad, hi + pad];
+    }
+    if (Object.keys(upd).length) Plotly.relayout(gd, upd);
+  }
+
+  /* A burst of zooms (wheel ticks) is one step back, not one per tick. */
+  let lastZoom = 0;
+  function apply(r, remember) {
+    if (same(r || full(), range || full())) return;
+    if (remember) {
+      const now = Date.now();
+      if (now - lastZoom > 600) history.push(range);
+      lastZoom = now;
+    }
+    range = r;
+    const want = r || full();
+    for (const gd of members) {
+      if (!gd.data) continue;
+      if (same(want, gd.layout.xaxis.range)) fitY(gd);
+      else Plotly.relayout(gd, { "xaxis.range": want.slice() }).then(() => fitY(gd));
+    }
+  }
+
+  /* Relayouts we trigger come back here too; apply() ignores them because the
+     range already matches. Y-only events (our refits) carry no x keys. */
+  function onRelayout(ev) {
+    for (const k in ev) {
+      if (/^xaxis\d*\.range\[0\]$/.test(k)) return apply([+ev[k], +ev[k.replace("[0]", "[1]")]], true);
+      if (/^xaxis\d*\.range$/.test(k)) return apply([+ev[k][0], +ev[k][1]], true);
+      if (/^xaxis\d*\.autorange$/.test(k)) return apply(null, true);
+    }
+  }
+
+  return {
+    get range() { return range ? range.slice() : undefined; },
+    attach(gd) {
+      members.add(gd);
+      gd.on("plotly_relayout", onRelayout);
+      gd.on("plotly_doubleclick", () => { if (history.length) apply(history.pop(), false); });
+      fitY(gd);
+    },
+    detach(gd) { members.delete(gd); },
+    clear() { members.clear(); },
+    reset() { history.length = 0; apply(null, false); }
+  };
 }
 
 /* ------------------------------------------------------------------ browse */
+const BROWSE_MODES = [["unit", "Axis per unit"], ["signal", "Axis per signal"],
+                      ["lanes", "Stacked lanes"], ["shared", "One shared axis"]];
+/* Each gl plot holds three WebGL contexts and browsers keep ~16 (see showPage). */
+const MAX_BROWSE_PLOTS = HAS_WEBGL ? 5 : 10;
+const MAX_OVERLAY_AXES = 8;
+
 function buildBrowse() {
   const sec = el("section", "page"); sec.hidden = true;
   const bl = el("p", "blurb");
-  bl.textContent = "Every decoded signal in the log. Filter, tick the ones you want, and plot them together on one axis.";
+  bl.textContent = "Every decoded signal in the log. Tick signals, then start a new plot or add them to an existing one. " +
+                   "Each plot keeps its own signals and scale mode; with linked time axes, zooming one plot zooms them all.";
   sec.appendChild(bl);
 
   const bar = el("div", "browse-bar");
-  const search = el("input"); search.type = "search"; search.placeholder = "filter by name or arb_id…";
-  const plotBtn = el("button", "btn"); plotBtn.textContent = "Plot selected";
-  const clearBtn = el("button", "btn"); clearBtn.textContent = "Clear";
-  const count = el("span", "hint"); count.textContent = "0 selected";
-  bar.append(search, plotBtn, clearBtn, count);
+  const search = el("input"); search.type = "search"; search.placeholder = "filter by name, arb_id or message…";
+  const newBtn = el("button", "btn primary"); newBtn.textContent = "New plot from ticked";
+  const clearBtn = el("button", "btn"); clearBtn.textContent = "Clear ticks";
+  const resetBtn = el("button", "btn"); resetBtn.textContent = "Reset zoom";
+  const count = el("span", "hint");
+  const linkLbl = el("label", "hint check");
+  const linkBox = el("input"); linkBox.type = "checkbox"; linkBox.checked = true;
+  linkLbl.append(linkBox, "link time axes");
+  bar.append(search, newBtn, clearBtn, resetBtn, count, linkLbl);
   sec.appendChild(bar);
 
   const scroller = el("div", "scroller");
   const table = el("table", "sigtable");
-  table.innerHTML = "<thead><tr><th style='width:26px'></th><th>signal</th><th>arb_id</th>" +
+  table.innerHTML = "<thead><tr><th style='width:26px'></th><th>signal</th><th>message</th>" +
                     "<th class='num'>net</th><th class='num'>samples</th><th class='num'>min</th>" +
-                    "<th class='num'>max</th><th class='num'>uniq</th></tr></thead>";
+                    "<th class='num'>max</th><th>unit</th><th class='num'>uniq</th></tr></thead>";
   const tb = el("tbody");
   const selected = new Set();
   const fmt = x => (Number.isInteger(x) ? x : Number(x.toFixed(3)));
@@ -1380,44 +1808,135 @@ function buildBrowse() {
     const cb = el("input"); cb.type = "checkbox";
     cb.addEventListener("change", () => {
       if (cb.checked) selected.add(nm); else selected.delete(nm);
-      count.textContent = selected.size + " selected";
+      updateCount();
     });
     const td0 = el("td"); td0.appendChild(cb);
-    tr.append(td0, cell(nm, "nm"), cell(s.arb || "—"), cell(s.net || "—", "num"),
+    tr.append(td0, cell(nm, "nm"), cell(s.arb ? msgLabel(s.arb) : "—"), cell(s.net || "—", "num"),
       cell(s.t.length.toLocaleString(), "num"), cell(fmt(s.min), "num"), cell(fmt(s.max), "num"),
+      cell(unitOf(nm) || (s.lab ? "state" : "")),
       cell(s.uniq > DISCRETE_MAX_UNIQUE ? ">" + DISCRETE_MAX_UNIQUE : s.uniq, "num"));
-    tr.dataset.key = (nm + " " + (s.arb || "")).toLowerCase();
+    tr.dataset.key = (nm + " " + (s.arb || "") + " " + (MESSAGE_NAMES[s.arb] || "")).toLowerCase();
     tb.appendChild(tr);
   }
   table.appendChild(tb);
   scroller.appendChild(table);
   sec.appendChild(scroller);
 
-  const out = el("div"); out.style.marginTop = "18px";
+  const out = el("div", "pcards");
   sec.appendChild(out);
+
+  const plots = [];
+  const shared = timeLink();   // used while "link time axes" is on; each plot has its own otherwise
+  let nextId = 1;
+
+  function updateCount() {
+    const full = plots.length >= MAX_BROWSE_PLOTS;
+    count.textContent = selected.size + " ticked" + (full ? " · plot limit (" + MAX_BROWSE_PLOTS + ") reached" : "");
+    newBtn.disabled = !selected.size || full;
+  }
+  function takeTicked() {
+    const names = [...selected].sort();
+    selected.clear();
+    tb.querySelectorAll("input").forEach(c => { c.checked = false; });
+    updateCount();
+    return names;
+  }
+
+  function addPlot(names) {
+    const p = { id: nextId++, names, mode: "unit", link: timeLink() };
+    plots.push(p);
+    out.appendChild(buildCard(p));
+    drawPlot(p);
+    updateCount();
+    p.card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function buildCard(p) {
+    const card = el("div", "pcard");
+    const head = el("div", "pcard-head");
+    const ttl = el("b"); ttl.textContent = "Plot " + p.id;
+    const mode = el("select"); mode.setAttribute("aria-label", "Scale mode for plot " + p.id);
+    for (const [v, t] of BROWSE_MODES) { const o = el("option"); o.value = v; o.textContent = t; mode.appendChild(o); }
+    mode.value = p.mode;
+    mode.addEventListener("change", () => { p.mode = mode.value; drawPlot(p); });
+    const add = el("button", "btn"); add.textContent = "Add ticked";
+    add.addEventListener("click", () => {
+      const more = takeTicked().filter(n => !p.names.includes(n));
+      if (more.length) { p.names.push(...more); drawPlot(p); }
+    });
+    const rm = el("button", "btn ghost"); rm.textContent = "Remove plot";
+    rm.addEventListener("click", () => {
+      shared.detach(p.box);
+      Plotly.purge(p.box);
+      card.remove();
+      plots.splice(plots.indexOf(p), 1);
+      updateCount();
+    });
+    head.append(ttl, mode, add, rm);
+    p.chips = el("div", "chips");
+    p.note = el("p", "hint"); p.note.hidden = true;
+    p.box = el("div", "plotbox");
+    card.append(head, p.chips, p.note, p.box);
+    p.card = card;
+    return card;
+  }
+
+  function renderChips(p) {
+    p.chips.innerHTML = "";
+    p.names.forEach((n, i) => {
+      const c = el("span", "chip"); c.style.borderLeftColor = PALETTE[i % PALETTE.length];
+      const t = el("span"); t.textContent = n + (unitOf(n) ? "  " + unitOf(n) : "");
+      const x = el("button", "chip-x"); x.textContent = "×"; x.setAttribute("aria-label", "Remove " + n);
+      x.addEventListener("click", () => { p.names.splice(p.names.indexOf(n), 1); drawPlot(p); });
+      c.append(t, x);
+      p.chips.appendChild(c);
+    });
+  }
+
+  function drawPlot(p) {
+    renderChips(p);
+    shared.detach(p.box);
+    p.link.detach(p.box);
+    Plotly.purge(p.box);
+    p.box.innerHTML = "";
+    p.note.hidden = true;
+    const got = p.names.map(n => [n, prep(n)]).filter(x => x[1]);
+    if (!got.length) {
+      p.box.innerHTML = '<p class="blurb">No signals. Tick some above and press <b>Add ticked</b>.</p>';
+      return;
+    }
+    let mode = p.mode;
+    if ((mode === "unit" || mode === "signal") && overlayGroups(got, mode).length > MAX_OVERLAY_AXES) {
+      p.note.textContent = "More than " + MAX_OVERLAY_AXES + " y-axes won't fit on one plot — showing stacked lanes instead.";
+      p.note.hidden = false;
+      mode = "lanes";
+    }
+    const link = linkBox.checked ? shared : p.link;
+    const opts = { xRange: link.range };
+    let done;
+    try {
+      if (mode === "unit" || mode === "signal") done = plotOverlay(p.box, got, Object.assign(opts, { grouping: mode }));
+      else if (mode === "lanes")
+        done = plotStack(p.box, got.map(([n, d]) => [n + (unitOf(n) ? "  (" + unitOf(n) + ")" : ""), [[n, d]]]),
+                         Object.assign(opts, { rowH: 150, minH: 260, showLegend: false }));
+      else done = plotStack(p.box, [["One shared axis  ·  " + got.length + " signals", got]], opts);
+    } catch (e) {
+      p.box.innerHTML = '<p class="blurb" style="color:#f06292">' + esc(e && e.message) + '</p>';
+      return;
+    }
+    done.then(() => link.attach(p.box));
+  }
 
   search.addEventListener("input", () => {
     const q = search.value.trim().toLowerCase();
     [...tb.children].forEach(tr => { tr.hidden = !!q && !tr.dataset.key.includes(q); });
   });
-  clearBtn.addEventListener("click", () => {
-    selected.clear();
-    tb.querySelectorAll("input").forEach(c => { c.checked = false; });
-    count.textContent = "0 selected";
-    out.querySelectorAll(".js-plotly-plot").forEach(d => Plotly.purge(d));
-    out.innerHTML = "";
-  });
-  function draw() {
-    if (!selected.size) { out.innerHTML = '<p class="blurb">Tick at least one signal first.</p>'; return; }
-    const got = [...selected].sort().map(n => [n, prep(n)]).filter(x => x[1]);
-    out.querySelectorAll(".js-plotly-plot").forEach(d => Plotly.purge(d));
-    out.innerHTML = "";
-    const box = el("div", "plotbox"); out.appendChild(box);
-    try { plotStack(box, [["Selected signals  ·  " + got.length, got]]); }
-    catch (e) { out.innerHTML = '<p class="blurb" style="color:#f06292">' + esc(e && e.message) + '</p>'; }
-  }
-  browseRedraw = draw;
-  plotBtn.addEventListener("click", draw);
+  newBtn.addEventListener("click", () => { if (selected.size) addPlot(takeTicked()); });
+  clearBtn.addEventListener("click", takeTicked);
+  resetBtn.addEventListener("click", () => { shared.reset(); plots.forEach(p => p.link.reset()); });
+  linkBox.addEventListener("change", () => plots.forEach(drawPlot));
+  browseRedraw = () => plots.forEach(drawPlot);
+  updateCount();
 
   return sec;
 }
